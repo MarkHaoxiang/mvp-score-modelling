@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mvp_score_modelling"
+version = "0.0.1"
+authors = [
+  { name="Hao Xiang Li", email="hxl23@cam.ac.uk" },
+  { name="Qiaozhi Lei",  email="ql316@cam.ac.uk" },
+]
+description = "Machine Vision Perception - Inverse Score Modelling"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+exclude = ["log*"]
