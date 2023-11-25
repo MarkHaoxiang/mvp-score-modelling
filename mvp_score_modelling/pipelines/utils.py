@@ -1,6 +1,5 @@
 from typing import Union, List, Optional, Tuple
 
-
 from diffusers import ScoreSdeVePipeline
 from diffusers.utils.torch_utils import randn_tensor
 import torch
@@ -39,8 +38,11 @@ class CustomConditionalScoreVePipeline(ScoreSdeVePipeline):
             return [tensor_to_PIL(img) for img in sample]
         return sample
 
-    def calculate_score(self, x_t, sigma_t):
+    def calculate_score(self, y, x_t, sigma_t):
         return self.unet(x_t, sigma_t).sample
+    
+    def constraint_projection(self, y, x_t, sigma_t):
+        return x_t
     
 
     @torch.no_grad()
@@ -64,12 +66,15 @@ class CustomConditionalScoreVePipeline(ScoreSdeVePipeline):
 
             # correction step
             for _ in range(self.scheduler.config.correct_steps):
-                score = self.calculate_score(sample, sigma_t)
+                score = self.calculate_score(y, sample, sigma_t)
                 sample = self.scheduler.step_correct(score, sample, generator=generator).prev_sample
+                sample = self.constraint_projection(y, sample, sigma_t)
 
             # prediction step
-            score = self.calculate_score(sample, sigma_t)
+            score = self.calculate_score(y, sample, sigma_t)
             output = self.scheduler.step_pred(score, t, sample, generator=generator)
+            sample = self.constraint_projection(y, sample, sigma_t)
             sample = output.prev_sample
 
         return self.organise_output(output, output_type)
+
