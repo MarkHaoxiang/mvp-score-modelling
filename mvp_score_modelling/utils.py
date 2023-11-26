@@ -4,8 +4,16 @@ from torchvision.transforms import Resize, ToPILImage, CenterCrop
 crop = CenterCrop(256)
 resize = Resize(256)
 softmax = torch.nn.Softmax()
-tensor_to_PIL = ToPILImage()
+_tensor_to_PIL = ToPILImage()
 
+def tensor_to_PIL(img: torch.Tensor):
+    shape = img.shape
+    if len(shape) == 3:
+        return _tensor_to_PIL(img)
+    elif shape[0] == 1:
+        return _tensor_to_PIL(img.squeeze())
+    else:
+        return [_tensor_to_PIL(im) for im in img]
 
 def plt_img(ax, img):
     ax.imshow(img.detach().cpu().permute(-2,-1,-3))

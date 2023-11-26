@@ -3,12 +3,13 @@ import torch.nn as nn
 from torch.distributions import Normal
 from .utils import CustomConditionalScoreVePipeline, VeTweedie
 
-def upscale(img, kernel_size):
-    upscaled = torch.repeat_interleave(img, kernel_size, dim=-2)
-    upscaled = torch.repeat_interleave(upscaled, kernel_size, dim=-1)
-    return upscaled
-
 class _SuperResolutionPipeline(CustomConditionalScoreVePipeline):
+    @staticmethod
+    def upscale(img, kernel_size):
+        upscaled = torch.repeat_interleave(img, kernel_size, dim=-2)
+        upscaled = torch.repeat_interleave(upscaled, kernel_size, dim=-1)
+        return upscaled
+
     def initialise_inference(self, y, generator, batch_size: int, n: int):
         self.downsampled, self.kernel_size = y
         self.pool = nn.AvgPool2d(
@@ -20,10 +21,10 @@ class _SuperResolutionPipeline(CustomConditionalScoreVePipeline):
 class SuperResolutionProjectionPipeline(_SuperResolutionPipeline):
     def initialise_inference(self, y, generator, batch_size: int, n: int):
         res = super().initialise_inference(y, generator, batch_size, n)
-        self.y = upscale(self.downsampled, self.kernel_size)
+        self.y = _SuperResolutionPipeline.upscale(self.downsampled, self.kernel_size)
         return res
     def constraint_projection(self, y, x_t, sigma_t):
-        diff = x_t - upscale(self.pool(x_t), self.kernel_size)
+        diff = x_t - _SuperResolutionPipeline.upscale(self.pool(x_t), self.kernel_size)
         return self.y + diff
 
 class PrYtGuidedSuperResolutionPipeline(_SuperResolutionPipeline):
@@ -36,12 +37,14 @@ class PrYtGuidedSuperResolutionPipeline(_SuperResolutionPipeline):
         return s_x + x_t.grad
 
 class PseudoinverseGuidedSuperResolutionPipeline(_SuperResolutionPipeline):
+    def initialise_inference(self, y, generator, batch_size: int, n: int):
+        self.tweedie = VeTweedie(self.unet)
+        return super().initialise_inference(y, generator, batch_size, n)
     def calculate_score(self, y, x_t, sigma_t):
         s_x = super().calculate_score(y, x_t, sigma_t)
-        tweedie = VeTweedie(self.unet)
         with torch.enable_grad():
             x_t.requires_grad = True
-            x_hat = tweedie(x_t, sigma_t, score=s_x)
+            x_hat = self.tweedie(x_t, sigma_t)
             r = sigma_t
             sigma_0 = r / self.kernel_size
             dist = Normal(self.pool(x_hat), sigma_0)

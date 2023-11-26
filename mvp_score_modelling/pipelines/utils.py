@@ -66,14 +66,14 @@ class CustomConditionalScoreVePipeline(ScoreSdeVePipeline):
 
             # correction step
             for _ in range(self.scheduler.config.correct_steps):
+                sample = self.constraint_projection(y, sample, sigma_t)
                 score = self.calculate_score(y, sample, sigma_t)
                 sample = self.scheduler.step_correct(score, sample, generator=generator).prev_sample
-                sample = self.constraint_projection(y, sample, sigma_t)
 
             # prediction step
+            sample = self.constraint_projection(y, sample, sigma_t)
             score = self.calculate_score(y, sample, sigma_t)
             output = self.scheduler.step_pred(score, t, sample, generator=generator)
-            sample = self.constraint_projection(y, sample, sigma_t)
             sample = output.prev_sample
 
         return self.organise_output(output, output_type)
