@@ -12,3 +12,6 @@ python mvp_score_modelling/evaluation/fid.py \
     --generated_path output/images/generated \
     --batch_size 32 --image_size 299 --feature 64 
 ```
+
+TODO:
+- [ ] write a script to save the test dataset of celebahq locally
