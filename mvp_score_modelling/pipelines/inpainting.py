@@ -46,14 +46,15 @@ class PseudoinverseGuidedInpaintingPipeline(_InpaintingPipeline):
 
     def calculate_score(self, y, x_t, sigma_t):
         s_x = super().calculate_score(y, x_t, sigma_t)
-        with torch.enable_grad():
-            x_t.requires_grad = True
-            x_hat = self.tweedie(x_t, sigma_t)
-            # r = torch.sqrt(sigma_t ** 2 / (sigma_t ** 2 + 1))
-            r = sigma_t 
-            dist = Normal(x_hat * self.mask, r)
-            dist.log_prob(self.masked_reference_image).sum().backward()
-        return s_x + x_t.grad
+        x_hat = self.tweedie(x_t, sigma_t, score=s_x)
+        v = self.masked_reference_image - self.mask * x_hat
+        v = torch.flatten((v / sigma_t**2), 1)
+        grad = torch.autograd.functional.vjp(
+            lambda x: torch.flatten(self.tweedie(x, sigma_t), start_dim=1),
+            inputs=x_t,
+            v=v
+        )[1]
+        return s_x + grad
 
 class PrYtGuidedInpaintingPipeline(_InpaintingPipeline):
     def calculate_score(self, y, x_t, sigma_t):
