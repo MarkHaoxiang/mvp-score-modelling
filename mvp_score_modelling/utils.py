@@ -16,7 +16,7 @@ def tensor_to_PIL(img: torch.Tensor):
         return [_tensor_to_PIL(im) for im in img]
 
 def plt_img(ax, img):
-    ax.imshow(img.detach().cpu().permute(-2,-1,-3))
+    ax.imshow(img.squeeze().detach().cpu().permute(-2,-1,-3))
 
 def process_from_raw(img: torch.Tensor) -> torch.Tensor:
     """ Transforms an image from a huggingface tensor dataset

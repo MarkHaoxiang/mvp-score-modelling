@@ -4,9 +4,28 @@ from torch.distributions import Normal
 from PIL.Image import Image
 from .utils import CustomConditionalScoreVePipeline, VeTweedie
 
+class MaskGenerator:
+    def __init__(self, shape, device='cpu'):
+        self.shape = shape
+        if len(self.shape) == 3:
+            shape = (1, *shape)
+        self.n = shape[-1] // 2
+        self.device = device
+
+    def generate_box_mask(self, size: int = 40) -> torch.Tensor:
+        mask = torch.ones(self.shape)
+        mask[:, :, self.n - size: self.n + size, self.n-size : self.n+size] = 0
+        return mask.to(device=self.device)
+
+    def generate_random_mask(self, p: float = 0.9) -> torch.Tensor:
+        mask = torch.rand(self.shape)
+        mask = torch.where(mask > p, torch.ones(self.shape), torch.zeros(self.shape))
+        return mask.to(device=self.device)
+
 class _InpaintingPipeline(CustomConditionalScoreVePipeline):
     def initialise_inference(self, y, generator, batch_size: int, n: int):
         self.reference_image, self.mask = y
+        self.masked_reference_image = self.reference_image * self.mask
         return super().initialise_inference(y, generator, batch_size, n)
 
 class InpaintingProjectionPipeline(_InpaintingPipeline):
@@ -30,9 +49,10 @@ class PseudoinverseGuidedInpaintingPipeline(_InpaintingPipeline):
         with torch.enable_grad():
             x_t.requires_grad = True
             x_hat = self.tweedie(x_t, sigma_t)
-            r = torch.sqrt(sigma_t ** 2 / (sigma_t ** 2 + 1))
+            # r = torch.sqrt(sigma_t ** 2 / (sigma_t ** 2 + 1))
+            r = sigma_t 
             dist = Normal(x_hat * self.mask, r)
-            dist.log_prob(self.reference_image * self.mask).sum().backward()
+            dist.log_prob(self.masked_reference_image).sum().backward()
         return s_x + x_t.grad
 
 class PrYtGuidedInpaintingPipeline(_InpaintingPipeline):
@@ -40,8 +60,9 @@ class PrYtGuidedInpaintingPipeline(_InpaintingPipeline):
         s_x = super().calculate_score(y, x_t, sigma_t)
         with torch.enable_grad():
             x_t.requires_grad = True
-            dist = Normal(self.mask * x_t, sigma_t)
-            dist.log_prob(self.mask * self.reference_image).sum().backward()
+            diff = self.masked_reference_image - self.mask * x_t
+            dist = Normal(0, sigma_t)
+            dist.log_prob(diff).sum().backward()
         return s_x + x_t.grad
 
 class ManifoldConstrainedGradientInpaintingPipeline(InpaintingProjectionPipeline):
@@ -87,9 +108,10 @@ class ManifoldConstrainedGradientInpaintingPipeline(InpaintingProjectionPipeline
                 x_t.requires_grad = True
                 x_hat = tweedie(x_t, sigma_t)
                 y_hat = self.mask * x_hat
-                dist = (y_hat - x_hat).pow(2)
+                dist = (y_hat - self.masked_reference_image).pow(2)
                 dist_norm = torch.sqrt(dist.sum([-1,-2,-3]))
                 a = alpha / dist_norm
+                dist.sum().backward()
                 a.reshape((*a.shape, 1, 1, 1))
                 sample = sample - a * x_t.grad
 
