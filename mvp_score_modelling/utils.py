@@ -30,20 +30,22 @@ def process_from_raw(img: torch.Tensor) -> torch.Tensor:
     """
     return resize(img.to(torch.float32).transpose(-1,-3).transpose(-1,-2) / 256)
 
-def compute_accuracy(dataloader, model, loss_fn, process):
+def compute_accuracy(dataloader, model, loss_fn, process, device=None):
     # Adapted from the MVP exercises
     num_batches, size, test_loss, correct = 0, 0, 0, 0
     model.eval()
     with torch.no_grad():
         for data in dataloader:
-            X, y = data['image'].to(model.device), data['label'].to(model.device)
+            X, y = data['image'], data['label']
+            if device is not None:
+                X, y = X.to(device), y.to(device)
             size += X.shape[0]
             num_batches += 1
             sigmas = torch.zeros(X.shape[0]).to(X.device)
             y_p = model(process(X), sigmas)
             test_loss += loss_fn(y_p, y).item()
             y_p = softmax(y_p)
-            correct += torch.all(((y_p > 0.5) == y), dim=1).sum().item()
+            correct += ((y_p.argmax(1)) == y).sum().item()
     test_loss /= num_batches
     correct /= size
     return correct, test_loss
