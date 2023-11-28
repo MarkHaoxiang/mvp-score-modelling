@@ -14,10 +14,22 @@ class VeTweedie(nn.Module):
         self.unet = unet
 
     def forward(self, x_t, sigma, score=None):
+        """ Calculates the VE expectation of x_0 from Tweedie's formula
+
+        Args:
+            x_t (_type_): (b, c, h, w)
+            sigma (_type_): (b)
+            score (_type_, optional): Defaults to passing through unet.
+
+        Returns:
+            Tensor: the expectation of x_0
+        """
         if len(x_t.shape) == 3:
             x_t = x_t.unsqueeze(0)
         if score is None:
             score = self.unet(x_t, sigma).sample
+        if isinstance(sigma, torch.Tensor) and len(sigma.shape) == 1:
+            sigma = sigma[:, None, None, None]
         return x_t + score * sigma**2
 
 class CustomConditionalScoreVePipeline(ScoreSdeVePipeline):
