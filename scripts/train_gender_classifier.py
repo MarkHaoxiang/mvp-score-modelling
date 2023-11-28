@@ -10,7 +10,7 @@ from tqdm import tqdm
 import wandb
 from diffusers import ScoreSdeVeScheduler, ScoreSdeVePipeline
 
-from mvp_score_modelling.nn import ClassificationNet
+from mvp_score_modelling.nn import ClassificationNet, ClassificationNetCNN
 from mvp_score_modelling.utils import process_from_raw, compute_accuracy
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -144,7 +144,7 @@ def main(output_file: str,
     print(f"Train size: {len(train_dataloader)}, Test size: {len(test_dataloader)}")
 
     # Model
-    model = ClassificationNet(n_classes=N_CLASSES, rff_dim=rff).to(device=DEVICE)
+    model = ClassificationNetCNN(n_classes=N_CLASSES, rff_dim=rff).to(device=DEVICE)
     best_model = copy.deepcopy(model)
 
     # Schedueler for getting timesteps and sigmas
