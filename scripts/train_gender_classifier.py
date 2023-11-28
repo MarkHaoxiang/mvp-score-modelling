@@ -232,7 +232,7 @@ def main(output_file: str,
             train_loss = train_loss / n_batches
 
             # Logging
-            accuracy, loss = compute_accuracy(test_dataloader, model, loss_fn, process_from_raw)
+            accuracy, loss = compute_accuracy(test_dataloader, model, loss_fn, lambda x: x)
             if accuracy >= best_accuracy:
                 logging.info(f"Model Improved {epoch} {accuracy}")
                 best_accuracy = accuracy

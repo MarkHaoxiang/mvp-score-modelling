@@ -36,7 +36,7 @@ def compute_accuracy(dataloader, model, loss_fn, process):
     model.eval()
     with torch.no_grad():
         for data in dataloader:
-            X, y = data['image'], data['label']
+            X, y = data['image'].to(model.device), data['label'].to(model.device)
             size += X.shape[0]
             num_batches += 1
             sigmas = torch.zeros(X.shape[0]).to(X.device)
