@@ -39,7 +39,8 @@ def compute_accuracy(dataloader, model, loss_fn, process):
             X, y = data['image'], data['label']
             size += X.shape[0]
             num_batches += 1
-            y_p = model(process(X))
+            sigmas = torch.zeros(X.shape[0]).to(X.device)
+            y_p = model(process(X), sigmas)
             test_loss += loss_fn(y_p, y).item()
             y_p = softmax(y_p)
             correct += torch.all(((y_p > 0.5) == y), dim=1).sum().item()
