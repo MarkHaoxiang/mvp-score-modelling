@@ -17,9 +17,13 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using device: {DEVICE}")
 N_CLASSES = 2
 
-# usage 
+# test usage 
 """
-python -m scripts.train_gender_classifier -o checkpoints/ --train 0.005 --test 0.001 --batch_size 2 --noise_batch 2 --use_wandb
+python -m scripts.train_gender_classifier -o checkpoints/ --train 0.005 --test 0.001 --batch_size 2 --noise_batch 2
+"""
+# proper usage 
+"""
+python -m scripts.train_gender_classifier -o checkpoints/ --use_wandb --n_epochs 50
 """
 
 parser = argparse.ArgumentParser(
@@ -49,7 +53,7 @@ parser.add_argument(
 parser.add_argument(
     "--batch_size",
     type=int,
-    default=32,
+    default=16,
     help="Batch size for training"
 )
 parser.add_argument(
