@@ -1,4 +1,5 @@
 import os
+import torch
 import shutil
 from datasets import load_dataset, concatenate_datasets, DatasetDict
 import argparse
@@ -14,6 +15,7 @@ def main(train_percent, test_percent, save_path, num_proc):
         batch['label'] = [1 if 'woman' in text.lower() else 0 for text in texts]
         return batch
 
+    ### Preprocessin
     ds = dataset['train'].map(label_dataset, batched=True, batch_size=32, remove_columns=['text'], num_proc=num_proc)
 
     dataset_0 = ds.filter(lambda batch: [x==0 for x in batch['label']], batched=True, batch_size=32, num_proc=num_proc)
@@ -21,12 +23,14 @@ def main(train_percent, test_percent, save_path, num_proc):
     print(f"Dataset 0 (male) size: {len(dataset_0)}, Dataset 1 (female) size: {len(dataset_1)}")
 
     def split_dataset(dataset, train_size, test_size):
-        split_dataset = dataset.train_test_split(test_size=test_size)
-        train_dataset = split_dataset['train'].train_test_split(train_size=train_size / (1 - test_size))
-        return train_dataset['train'], train_dataset['test'], split_dataset['test']
+        train = dataset.select(range(train_size))
+        test = dataset.select(range(train_size, train_size + test_size))
+        return train, test
 
-    train_dataset_0, _, test_dataset_0 = split_dataset(dataset_0, train_percent, test_percent)
-    train_dataset_1, _, test_dataset_1 = split_dataset(dataset_1, train_percent, test_percent)
+    train_size_half = int(len(ds) * train_percent) // 2
+    test_size_half = int(len(ds) * test_percent) // 2
+    train_dataset_0, test_dataset_0 = split_dataset(dataset_0, train_size_half, test_size_half)
+    train_dataset_1, test_dataset_1 = split_dataset(dataset_1, train_size_half, test_size_half)
 
     # Combine 
     train_dataset = concatenate_datasets([train_dataset_0, train_dataset_1])
@@ -36,6 +40,11 @@ def main(train_percent, test_percent, save_path, num_proc):
     test_dataset = test_dataset.shuffle(seed=0)
     print(f"Train dataset size: {len(train_dataset)}, Test dataset size: {len(test_dataset)}")
 
+    # test even distribution of labels
+    print(f"Train dataset label distribution: {torch.unique(torch.tensor(train_dataset['label']), return_counts=True)}")
+    print(f"Test dataset label distribution: {torch.unique(torch.tensor(test_dataset['label']), return_counts=True)}")
+
+    ### Save images
     if os.path.exists(save_path):
         shutil.rmtree(save_path)
         print(f"Deleted {save_path}")
