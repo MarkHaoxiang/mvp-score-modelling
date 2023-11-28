@@ -32,4 +32,4 @@ class NoiselessConditionalClassifierPipeline(_ClassConditionalClassifierPipeline
             class_probabilities = self.softmax(self.classifier(x_hat))
             target = class_probabilities[:, self.target]
             torch.log(target).sum().backward()
-        return s_x + x_t.grad
+        return s_x + torch.nan_to_num(x_t.grad)
