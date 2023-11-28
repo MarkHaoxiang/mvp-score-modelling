@@ -14,7 +14,7 @@ class ClassConditionalClassifierPipeline(_ClassConditionalClassifierPipeline):
         s_x =  super().calculate_score(y, x_t, sigma_t)
         with torch.enable_grad():
             x_t.requires_grad = True
-            class_probabilities = self.softmax(self.classifier(x_t))
+            class_probabilities = self.softmax(self.classifier(x_t, sigma_t))
             target = class_probabilities[:, self.target]
             torch.log(target).sum().backward()
         return s_x + x_t.grad
