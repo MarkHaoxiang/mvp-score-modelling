@@ -14,7 +14,13 @@ from mvp_score_modelling.nn import ClassificationNet, ClassificationNetCNN
 from mvp_score_modelling.utils import process_from_raw, compute_accuracy
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f"Using device: {DEVICE}")
 N_CLASSES = 2
+
+# usage 
+"""
+python -m scripts.train_gender_classifier -o checkpoints/ --train 0.005 --test 0.001 --batch_size 2 --noise_batch 2 --use_wandb
+"""
 
 parser = argparse.ArgumentParser(
     prog="train_gender_classifier",
@@ -41,22 +47,45 @@ parser.add_argument(
     help="Number of training epochs"
 )
 parser.add_argument(
+    "--batch_size",
+    type=int,
+    default=32,
+    help="Batch size for training"
+)
+parser.add_argument(
     "--rff",
     type=int,
-    default=64,
+    default=128,
     help="Number of random fourier features"
 )
 parser.add_argument(
-    "--noise-batch",
+    "--noise_batch",
     type=int,
-    default=64,
+    default=32,
     help="noise batch size"
 )
 parser.add_argument(
-    "--noise-max",
+    "--noise_max",
     type=int,
-    default=100,
+    default=1000,
     help="max timestep for random noise, the higher it is, the higher the max noise"
+)
+parser.add_argument(
+    "--use_wandb",
+    action="store_true",
+    help="Log to wandb"
+)
+parser.add_argument(
+    "--train",
+    type=float,
+    default=0.45,
+    help="Fraction of training data to use"
+)
+parser.add_argument(
+    "--test",
+    type=float,
+    default=0.05,
+    help="Fraction of test data to use"
 )
 
 args = parser.parse_args()
@@ -73,17 +102,16 @@ def get_timesteps_and_sigmas(scheduler, batch_size, max_timesteps=None):
 
 def main(output_file: str,
          rff: int = 64,   
-         noise_batch: int = 64,
-         noise_max: int = 100,
+         noise_batch: int = 32,
+         noise_max: int = 1000,
          batch_size: int = 32,
          n_epochs: int = 15,
-         train_data_percentage: float = 0.4,
+         train_percent: float = 0.45,
+         test_percent: float = 0.05,
+         use_wandb: bool = True,
          lr=1e-3):
     # Dataset
     dataset: Dataset = load_dataset("Ryan-sjtu/celebahq-caption")
-
-    train_percent = 0.005
-    test_percent = 0.001
 
     train_size = int(len(dataset["train"]) * train_percent)
     test_size = int(len(dataset["train"]) * test_percent)
@@ -141,7 +169,7 @@ def main(output_file: str,
     # Dataloaders
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
     test_dataloader =  DataLoader(test_dataset, batch_size=batch_size)
-    print(f"Train size: {len(train_dataloader)}, Test size: {len(test_dataloader)}")
+    print(f"Train size: {len(train_dataloader.dataset)}, Test size: {len(test_dataloader.dataset)}")
 
     # Model
     model = ClassificationNetCNN(n_classes=N_CLASSES, rff_dim=rff).to(device=DEVICE)
@@ -152,19 +180,20 @@ def main(output_file: str,
     unconditional_pipeline = ScoreSdeVePipeline.from_pretrained(PRETRAINED).to(device=DEVICE)
     scheduler: ScoreSdeVeScheduler = unconditional_pipeline.scheduler
 
-    # Wandb
-    wandb.init(
-        project="mvp",
-        config={
-            "batch_size": batch_size,
-            "n_epochs": n_epochs,
-            "lr": lr
-        },
-        name="gender_classifier",
-        mode="online"
-    )
     n_batches = len(train_dataloader)
-    wandb.watch(model, log="all", log_freq=n_batches)
+    # Wandb
+    if use_wandb:
+        wandb.init(
+            project="mvp",
+            config={
+                "batch_size": batch_size,
+                "n_epochs": n_epochs,
+                "lr": lr
+            },
+            name="gender_classifier",
+            mode="online"
+        )
+        wandb.watch(model, log="all", log_freq=n_batches)
 
     # Training Loop
     optim = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
@@ -176,7 +205,7 @@ def main(output_file: str,
         train_loss = 0
         for epoch in range(n_epochs):
             for i, data in enumerate(train_dataloader):
-                X, y = data['image'], data['label']
+                X, y = data['image'].to(DEVICE), data['label'].to(DEVICE)
 
                 ### Preprocess image
                 X = X.unsqueeze(1)
@@ -207,21 +236,30 @@ def main(output_file: str,
             pbar.set_description(f"test accuracy {accuracy:.4f} loss {loss:.4f}")
             pbar.update(1)
 
-            wandb.log({
-                "train/loss": train_loss,
-                "evaluation/accuracy": accuracy,
-                "evaluation/loss": loss
-            })
+            if use_wandb:
+                wandb.log({
+                    "train/loss": train_loss,
+                    "evaluation/accuracy": accuracy,
+                    "evaluation/loss": loss
+                })
     
     # Save model
-    wandb.unwatch()
-    wandb.finish()
+    if use_wandb:
+        wandb.unwatch()
+        wandb.finish()
     torch.save(best_model, output_file)
 
 if __name__ == "__main__":
+    print(args)
     main(
         args.output,
         rff=args.rff,
         lr=args.learning_rate,
-        n_epochs=args.n_epochs
+        n_epochs=args.n_epochs,
+        noise_batch=args.noise_batch,
+        noise_max=args.noise_max,
+        use_wandb=args.use_wandb,
+        train_percent=args.train,
+        test_percent=args.test,
+        batch_size=args.batch_size
     )
