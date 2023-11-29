@@ -18,7 +18,7 @@ class ClassConditionalClassifierPipeline(_ClassConditionalClassifierPipeline):
             class_probabilities = self.softmax(self.classifier(x_t, sigma_t) / self.temperature)
             target = class_probabilities[:, self.target]
             torch.log(target).sum().backward()
-        return s_x + x_t.grad
+        return s_x + torch.nan_to_num(x_t.grad)
 
 class NoiselessConditionalClassifierPipeline(_ClassConditionalClassifierPipeline):
     def initialise_inference(self, y, generator, batch_size: int, n: int):
