@@ -43,7 +43,7 @@ def main(args):
         )
         for i, image in enumerate(images):
             filepath = os.path.join(args.save_path, f'image_b{b}_t{target}_{i}.png')
-            images[0].save(filepath)
+            image.save(filepath)
         print(f"Inference {b} completed, saved {len(images)} images to {args.save_path}")
 
 if __name__ == "__main__":
@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
 # use case:
 """sh
-python -m mvp_score_modelling.evaluation.class_conditional_inference \
+python scripts/class_conditional_inference.py \
     --model_path checkpoints/test \
     --save_path output/class_conditional_inference/test/all \
     --num_batch 1 \
@@ -69,7 +69,7 @@ python -m mvp_score_modelling.evaluation.class_conditional_inference \
 """
 
 """windows
-python -m mvp_score_modelling.evaluation.class_conditional_inference ^
+python scripts/class_conditional_inference.py ^
     --model_path checkpoints/test ^
     --save_path output/class_conditional_inference/test/all ^
     --num_batch 1 ^
