@@ -39,7 +39,8 @@ def main(args):
         images = pipeline(
             num_inference_steps=args.inference_steps,
             y=(model, target),
-            batch_size=args.batch_size
+            batch_size=args.batch_size,
+            temperature=args.temperature
         )
         for i, image in enumerate(images):
             filepath = os.path.join(args.save_path, f'image_b{b}_t{target}_{i}.png')
@@ -53,6 +54,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_batch", type=int, required=True, help="Number of batches to generate.")
     parser.add_argument("--batch_size", type=int, required=True, help="Size of each batch.")
     parser.add_argument("--inference_steps", type=int, required=True, help="Number of inference steps.")
+    parser.add_argument("--temperature", type=float, default=1.0, help="Temperature for classifier.")
 
     args = parser.parse_args()
     print(args)
@@ -65,7 +67,8 @@ python -m mvp_score_modelling.evaluation.class_conditional_inference \
     --save_path output/class_conditional_inference/test/all \
     --num_batch 1 \
     --batch_size 1 \
-    --inference_steps 800
+    --inference_steps 800 \
+    --temperature 1.0
 """
 
 """windows
@@ -74,5 +77,6 @@ python -m mvp_score_modelling.evaluation.class_conditional_inference ^
     --save_path output/class_conditional_inference/test/all ^
     --num_batch 1 ^
     --batch_size 1 ^
-    --inference_steps 800
+    --inference_steps 800 ^
+    --temperature 1.0
 """

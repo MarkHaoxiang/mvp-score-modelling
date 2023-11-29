@@ -5,8 +5,9 @@ from .utils import CustomConditionalScoreVePipeline, VeTweedie
 
 class _ClassConditionalClassifierPipeline(CustomConditionalScoreVePipeline):
     softmax = nn.Softmax()
-    def initialise_inference(self, y, generator, batch_size: int, n: int):
+    def initialise_inference(self, y, generator, batch_size: int, n: int, temperature=1.0):
         self.classifier, self.target = y
+        self.temperature = temperature
         return super().initialise_inference(y, generator, batch_size, n)
     
 class ClassConditionalClassifierPipeline(_ClassConditionalClassifierPipeline):
@@ -14,7 +15,7 @@ class ClassConditionalClassifierPipeline(_ClassConditionalClassifierPipeline):
         s_x =  super().calculate_score(y, x_t, sigma_t)
         with torch.enable_grad():
             x_t.requires_grad = True
-            class_probabilities = self.softmax(self.classifier(x_t, sigma_t))
+            class_probabilities = self.softmax(self.classifier(x_t, sigma_t) / self.temperature)
             target = class_probabilities[:, self.target]
             torch.log(target).sum().backward()
         return s_x + x_t.grad
