@@ -1,13 +1,9 @@
 import torch
 from torchmetrics.image.fid import FrechetInceptionDistance
 from torchvision.transforms import Resize, Compose, ToTensor, Normalize
-from torchvision.datasets import ImageFolder
 import argparse
 
-def load_images(image_folder, batch_size, transforms):
-    dataset = ImageFolder(root=image_folder, transform=transforms)
-    loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    return loader
+from mvp_score_modelling.utils import load_images
 
 def calculate_fid(real_images_loader, generated_images_loader, fid):
     for real_batch, _ in real_images_loader:

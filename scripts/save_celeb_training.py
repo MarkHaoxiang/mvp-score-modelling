@@ -15,7 +15,7 @@ def main(train_percent, test_percent, save_path, num_proc):
         batch['label'] = [1 if 'woman' in text.lower() else 0 for text in texts]
         return batch
 
-    ### Preprocessin
+    ### Preprocessing
     ds = dataset['train'].map(label_dataset, batched=True, batch_size=32, remove_columns=['text'], num_proc=num_proc)
 
     dataset_0 = ds.filter(lambda batch: [x==0 for x in batch['label']], batched=True, batch_size=32, num_proc=num_proc)

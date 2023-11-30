@@ -1,5 +1,6 @@
 import torch
 from torchvision.transforms import Resize, ToPILImage, CenterCrop
+from torchvision.datasets import ImageFolder
 
 crop = CenterCrop(256)
 resize = Resize(256)
@@ -49,3 +50,8 @@ def compute_accuracy(dataloader, model, loss_fn, process, device=None):
     test_loss /= num_batches
     correct /= size
     return correct, test_loss
+
+def load_images(image_folder, batch_size, transforms):
+    dataset = ImageFolder(root=image_folder, transform=transforms)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    return loader
