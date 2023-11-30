@@ -76,9 +76,6 @@ This is the SDE for conditional generation.
 <!-- shows equation -->
 The gradient-based methods aim to estimate the gradient of the log probability. Using bayes rule, we get <!-- equation -->
 
-Gradient-based approaches attempt to approximate this term. 
-<!-- highlight the term on ppt  -->
-
 For the task of class-conditional generation, we first train a noise-dependent classifier. We would softmax then log the classifier outputs to get the log probability, followed by backprogation to calculate its gradient.
 
 Another approach is the Pseudoinverse Guided method.
@@ -148,21 +145,36 @@ We applied many baseline methods to inverse problems not covered in the original
 
 For super-resolution, our goal is to find HH^T to use the pseudoinverse guided method. 
 
-We discover Aij to be ...
+First consider integer k, and similar `averaging'  transformation $A \in \left\{\frac{1}{k}, 0\right\}^{m \times n}$ of this form
 
-Therefore, HH^T can be found be be ... which is a diagonal matrix. This means the distribution is an i.i.d gaussian.
+<!-- show Aij definition -->
+
+$A A^T$ is in fact $\frac{1}{k} \bm{I}$ of size $(m \times m)$. 
+
+It is possible to decompose $H=PM$, where $M$ represents some sequence of elementary row reordering. In this case, $k$ is the area of each pooling block. Since $M$ is by definition orthogonal and invertible,
+
+<!-- show HH^T derivation -->
+
+HH^T can be found be be ... which is a diagonal matrix. This means the distribution is an i.i.d gaussian.
 
 <!-- show distribution formula -->
 
 Similar analysis can be applied to inpainting, where HHT is an identity matrix, and colorisation, which can be seen as super-resolution with can extra upscaling step.
 
+---
+
 Deblurring is a bit different. In deblurring, each element in the original image $x$ can influence multiple elements in the measured (blurred) $Hx$. As a result, $HH^T$ cannot be orthogonally transformed to a diagonal matrix, which means that $p_t(\bm{y}|\bm{x_i})$ can't be approximated as an i.i.d gaussian.
 
-However, there is a clever way to find $H^+$ using SVD. 
+However, we can try to find the moore penrose pseudoinverse, which can be found using the single value decomposition of H. 
+
+To find SVD of H, we consider a 9 by 9 uniform blurring kernel, we can separate the blurring matrix H into A_r and A_c, which apply 1D bluring kernels on the rows can columns. Given that we can easily find the SVDs of A_r and A_c, we can write H in this way, which is the SVD of H after a sorting permuation.
+
+Recall that moore penrose pseudoinverse are approximations of the actual inverse, and in many deblurring situations, applying the pesudoinverse directly on the observation yields very good results.
+
 
 ## Method -- Data/ training/ testing (1min)
 
-All our inferences require both a condition y and a measurement matrix H, sometimes derived from other information, such as the blurring kernel.
+All our inferences require both a condition y and a measurement matrix H, sometimes derived from other information, such as the blurring kernel. The specific requirements for H and y are task-specific.
 
 <!-- don't go into details here due to lack of time -->
 <!-- footnote: the specific requirements for each task can be found in section 2.4.1 of our reports -->
@@ -175,7 +187,9 @@ We only need to train classifiers for the class conditional task. We preprocess 
 
 <!-- [Explain the datasets utilized: what they contain, why they are utilized, assumptions, limitations, possible extensions.] -->
 
-Our first dataset chosen was CelebA-HQ, an annotated facial dataset. This was chosen for qualitative analysis, since humans are naturally good at detecting discrepancies on facial data. Our second dataset used was lsun-church, a outerchurch dataset with a wide range of architectural styles, lighting and background. This offers a good contrast with CelebA and the distribution of churches covers a much wider range than faces.
+Our first dataset chosen was CelebA-HQ, an annotated facial dataset. This was chosen for qualitative analysis, since humans are naturally good at detecting discrepancies on facial data. 
+
+Our second dataset used was lsun-church, a outerchurch dataset with a wide range of architectural styles, lighting and background. This offers a good contrast with CelebA and the distribution of churches covers a much wider range than faces.
 
 A limitation is that these datasets are still in a single domain: image generation. An extension we could not complete was extension to audio generation with MIDI due to computational resources. We think the expansion of domains would introduce new forms of measurements / problems not previously considered, thus potentially exposing innovate directions for guiding conditional generation.
 
@@ -193,7 +207,24 @@ A limitation is that these datasets are still in a single domain: image generati
 
 ## [Optional] Results -- Quantitative and Comparisons (2mins)
 
+Here is the comparision between different methods for all 5 inverse problems on the CelebA dataset.
+
+Our PrYt heuristic performed well on many tasks, except for block inpainting, where we observed some strange black and white artifacts.
+
+In general, MCG generates the most realistic results across tasks with fewer human interpreted
+inconsistencies. For instance,in the random inpainting task on the top row, MCG is difficult to
+distinguish from ground truth. Pseudoinverse guided pipeline comes in second, but it along
+with other pipelines have significant noise and shadowing artifacts. 
+
+Here is the same comparison on the church dataset.
+
+<!-- skip  -->
+
 ## Conclusions -- Main Takeaways (1min)
+
+We realised the importance of linear algebra.
+
+Learnt a lot 
 
 ## Conclusions -- Limitations and Future Work (1min)
 A major limitation of our work is on computational resources, which limit the confidence of our quantiative and qualititative analysis. Experiments we would have liked to run include:
