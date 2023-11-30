@@ -26,8 +26,8 @@ def main(args):
 
     torch.manual_seed(args.seed)
     fid = FrechetInceptionDistance(feature=args.feature, normalize=True)
-    if args.float64:
-        fid = fid.float64()
+    #if args.float64:
+    #    fid = fid.float64()
     fid_score = calculate_fid(real_images_loader, generated_images_loader, fid)
 
     print(f"Real images: {len(real_images_loader.dataset)}, Generated images: {len(generated_images_loader.dataset)}")
