@@ -4,7 +4,7 @@ around 10 mins -- make it 15!
 
 ## Title
 
-Hi, we are part ii students Hao Xiang Li and Qiaozhi Lei, and our project is "Inverse problems with score modelling". 
+Hi, we are part ii students, and our project is "Inverse problems with score modelling". 
 
 ## Introduction and Motivation (2mins)
 
@@ -161,6 +161,9 @@ HH^T can be found be be ... which is a diagonal matrix. This means the distribut
 
 Similar analysis can be applied to inpainting, where HHT is an identity matrix, and colorisation, which can be seen as super-resolution with can extra upscaling step.
 
+TODO:
+Quick slide on face merging?
+
 ---
 
 Deblurring is a bit different. In deblurring, each element in the original image $x$ can influence multiple elements in the measured (blurred) $Hx$. As a result, $HH^T$ cannot be orthogonally transformed to a diagonal matrix, which means that $p_t(\bm{y}|\bm{x_i})$ can't be approximated as an i.i.d gaussian.
@@ -209,27 +212,31 @@ A limitation is that these datasets are still in a single domain: image generati
 
 Here is the comparision between different methods for all 5 inverse problems on the CelebA dataset.
 
-Our PrYt heuristic performed well on many tasks, except for block inpainting, where we observed some strange black and white artifacts.
-
-In general, MCG generates the most realistic results across tasks with fewer human interpreted
-inconsistencies. For instance,in the random inpainting task on the top row, MCG is difficult to
-distinguish from ground truth. Pseudoinverse guided pipeline comes in second, but it along
-with other pipelines have significant noise and shadowing artifacts. 
-
 Here is the same comparison on the church dataset.
+
+In general, we find that no single method outperformed others in all tasks. Our PrYt heuristic performs well on super-resolution, but we observe black and white artifacts on block inpainting. Constraint pipeline was fast to execute and had decent performance on all tasks. On the super-resolution task, with our own constraint, it surpassed the performance of all other pipelines with the highest PSNR score. $\Pi$GDM did well on the colorisation task, and was second behind MCG for random inpainting from SSIM, LPIPS and Y measurement error score, as well as human view. Overall, MCG did well on all tasks and score highly for metrics in general as well. It performs remarkably well for inpainting, for example in the top row of random inpainting MCG is difficult to distinguish from ground truth. We conjecture the extra gradient term allows it to converge faster on top of the Constraint projection.
+
+### Classifier Conditioning
+
+We also briefly consider the results of the class-conditional generation for genders, which for simplicity of this investigation we pose as a binary classification problem. 
+
+Both methods are clearly imperfect. The Tweedie-conditional generator seems to have less of an influence, keeping in line more with the unconditional model. Both methods successfully guide the model towards the correct class. There exists a limitation in both our method and the algorithm for noise-conditional classification: ie. we trained the two classifiers with different underlying architectures and weight balancing techniques. This could be improved on our part, but also reflects a key advantage of Tweedie classifier: it is far more easy to adapt/use existing work, such as the Mobilenet we used for the classifer, skipping the step of making it noise conditional.
 
 <!-- skip  -->
 
 ## Conclusions -- Main Takeaways (1min)
 
-We realised the importance of linear algebra.
-
-Learnt a lot 
+- No current method solves all the posed problems (closest is MCG).
+- Tweedie is a powerful tool to construct better estimates, allowing tweedie-conditional classifier, $\Pi$GDM and MCG to work.
+- Tweedie methods are also slow for inference, due to backpropagation across the score model.
+- Theoretical understanding of both the score model and measurements is key! Linear algebra.\
+- Quantitative analysis is hard, better metrics are needed in both alignment and computational efficiency.
 
 ## Conclusions -- Limitations and Future Work (1min)
 A major limitation of our work is on computational resources, which limit the confidence of our quantiative and qualititative analysis. Experiments we would have liked to run include:
 1. Comparing FID scores between noise conditional and tweedie conditional class generation
 2. More datapoints for qualitive results, such as face merging
 3. Testing out how incorrect assumptions for $H$ degrade results (this was briefly explored for the task of pseudoinverse deblurring.)
+Another limitation is that we consider perfect measurements without noise, and assume we have perfect knowledge of the measurement process, such as knowing the size of kernels.
 
-On future work, it would be beneficial to observe how diffusion models extend to other domains with potentially new failure modes. We see potential and work needed in improving pipelines utilising neural networks. Finally, we are impressed by the performance of the MCG pipeline and similar gradient update steps deserve further exploration.
+On future work, it would be beneficial to observe how diffusion models extend to other domains with potentially new failure modes. We see potential and work needed in improving pipelines utilising neural networks. Finally, we are impressed by the performance of the MCG pipeline and similar gradient update steps deserve further exploration. 
