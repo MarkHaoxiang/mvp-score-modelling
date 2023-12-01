@@ -4,6 +4,7 @@ from diffusers import ScoreSdeVePipeline
 from diffusers.utils.torch_utils import randn_tensor
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from PIL.Image import Image
 
 from mvp_score_modelling.utils import tensor_to_PIL
@@ -90,3 +91,41 @@ class CustomConditionalScoreVePipeline(ScoreSdeVePipeline):
 
         return self.organise_output(output, output_type)
 
+def apply_custom_blur(images, kernel, padding_mode='reflect'):
+    """
+    Apply custom blur to a batch of images using a specified kernel.
+
+    :param images: Tensor of shape [n, c, h, w]
+    :param kernel: 2D tensor representing the blurring kernel
+    :param padding_mode: Mode used for padding (default is 'reflect')
+    :return: Blurred images
+    """
+    kernel_size = kernel.size(0)
+    kernel = kernel.view(1, 1, kernel_size, kernel_size).repeat(images.shape[1], 1, 1, 1)
+    kernel = kernel.to(images.device).type(images.dtype)
+
+    padding = kernel_size // 2
+    images_padded = F.pad(images, (padding, padding, padding, padding), mode=padding_mode)
+
+    blurred_images = F.conv2d(images_padded, kernel, groups=images.shape[1])
+    return blurred_images
+
+def kron(a, b):
+    return torch.einsum('ij,kl->ikjl', a, b).reshape(a.size(0) * b.size(0), a.size(1) * b.size(1))
+
+def pseudo_inverse(U, S, V, P2=None):
+    # Threshold for considering singular values as zero
+    threshold = 1e-6
+
+    if P2 != None:
+        S = P2 @ S @ P2.T
+        U = U @ P2.T
+        V = (P2 @ V.mH).mH
+
+    if (len(S.shape) > 1):
+        S = torch.diag(S)
+
+    S_inv = torch.diag_embed(1 / S)
+
+    H_plus = V @ S_inv @ U.mH
+    return H_plus
