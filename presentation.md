@@ -12,15 +12,15 @@ Hi, we are two part II students taking the MVP module, and our project is "Inver
 
 So what are inverse problems?
 
-Consider a forward process where we apply measurements to images to get observations. Inverse problems are all about reversing forward processes: starting from observations, it is desireable to retrieve the original image. 
+Consider a forward process where we apply measurements to images to obtain observations. Inverse problems are all about reversing forward processes: starting from observations, it is desireable to retrieve the original image. 
 
 <!-- [footnote]: measurements have no noise -->
 
-This is far from straightforward due to the ill-posed nature of many such problems. For instance, given a greyscale image, we can color it in different ways
+This is far from straightforward due to the ill-posed nature of many such problems. For instance, given a greyscale image, we can color it in different ways. 
 
-Inverse problems are equivalent to conditional generation in a way: we are trying to generate the original image, given the observation and the measurement as conditions.
+In some sense, inverse problems are equivalent to conditional generation. The goal is to try and generate the original image, given the observation and the measurement as conditions.
 
-We've focused on 5 specific inverse problems
+This project focuses on 5 specific inverse problems
 
 Inpainting, filling in masked areas of images.
 Colorisation, coloring greyscale images.
@@ -28,20 +28,18 @@ Super-resolution, reverting the effects of a pooling kernel.
 Deblurring, reverting a blurring kernel.
 Class-conditional generation, generating images based on a label.
 
-Solving these inverse problems have real-world importances: colorization enables restorations of historical photographs, while super-resolution in medical imaging allows for clearer and detailed diagnosis
+Solving these inverse problems have real-world importances: colorization enables restoration of historical photographs, while super-resolution in medical imaging allows for accurate and precise diagnosis
 
 <!-- [Explain how the main idea of the project relates to previous works and why it makes sense.] -->
 
-The straightforward way to do conditional generation is by retraining a diffusion model on a subset of data , which demands extensive computational resources and retraining for each new condition.
-
-The approaches we reproduce, however, leverages the generalisability of an unconditional model -- specifically, score-based diffusion models
+The straightforward way to perform conditional generation is by retraining a diffusion model on a subset of data. This demands extensive computational resources and retraining on each new problem. The approaches we reproduce, however, leverages the generalisability of an unconditional model -- specifically, score-based diffusion model
 
 These models don't learn the entire distribution but instead the gradient of the log probability, known as the score. 
 
 
 <!-- Page on forward diffusion -->
 
-The forward diffusion process iteratively adds noise to an image. By reversing the forward process, it is possible to obtain images from noise. The score guides the reverse process, according to this Stochastic Differential Equation. There are many numerical methods for solving this, such as the Euler-Maruyama extension of Euler's method. In general, the continuous process is approximated through many small discrete steps.
+The forward diffusion process iteratively adds noise to an image. By reversing the forward process, it is possible to obtain images from noise. The score guides the reverse process, according to this Stochastic Differential Equation. There are many numerical methods for solving SDEs, such as the Euler-Maruyama extension of Euler's method. In general, the continuous process is approximated through many small discrete steps.
 
 <!-- equation of reverse SDE -->
 
@@ -56,7 +54,7 @@ We employ the projector-corrector method by Song to numerically solve our SDE, d
 Here are some relevant works to conditional generation which we reproduce and improve.
 The first paper introduced score-sde models, gradient based class-conditional generation and constraint-based inpainting and colorisation methods. 
 The second paper introduced the pseudoinverse guided method
-The third paper introduced the manifold constrained gradient methods.
+The third paper introduced the manifold constrained gradient method.
 
 ## Method -- Baseline (2mins)
 
@@ -73,7 +71,7 @@ We can roughly divide the baseline inference methods into 2 categories.
 
 This is the SDE for conditional generation. 
 <!-- shows equation -->
-The gradient-based methods aim to estimate the gradient of the log probability. Unfortunately, that is usually not tractable. Using bayes rule, however, we get 2 more tractable terms <!-- equation -->
+The gradient-based methods aim to estimate the gradient of the log probability. Unfortunately, that is usually not tractable. Using bayes rule, however, we get 2 terms. One can be approximated with the score function, the other with a heuristic.= <!-- equation -->
 
 For the task of class-conditional generation, we first train a noise-conditional classifier. We would softmax then log the classifier outputs to get the log probability, followed by backprogation to calculate its gradient.
 
@@ -96,9 +94,7 @@ Consider image inpainting as an example.
 - Measurement H is a masking transformation
 - y is the masked image
 
-Corrective projection is to first get the ground truth sample by adding noise with the noise scale of the current step. Then overwrite the known parts of the sample with the ground truth sample.
-
-Intuitively, the ground truth samples in the known areas will guide the reverse diffusion process to generate something suitable in the unknown parts.
+Corrective projection is to first get the ground truth sample by adding noise with the noise scale of the current step. Then overwrite the known parts of the sample with the ground truth sample. Intuitively, the ground truth samples in the known areas will guide the reverse diffusion process to generate something suitable in the unknown parts.
 
 ---
 
@@ -128,20 +124,17 @@ The results are surprisingly good on an initial subset of tasks.
 
 <!-- show images of results -->
 
-TODO: double check this sentence, I got it from the report, I don't quite understand "this relationship..."
-We conjecture that the performance could be due to this relationship for tasks where the score function doesn’t significantly impact the measurement. 
+We conjecture that the success of this heuristic could be due the similarity wrt. $\Pi$GDM on tasks where the score function doesn't significantly impact the measurement.
 
 ### Class-conditional 
 
-For class-conditional generation, the baseline method uses a noise-conditional classifier, it would be really nice if we can use a noise-independent classifier, since we can use existing classifiers. 
-
-But how to let a noise-independent classifier classify noisy samples? Our idea is using tweedie to denoise the noisy samples in one step, before passing to the classifier.
+For class-conditional generation, the baseline method uses a noise-conditional classifier, it would be ridea if we can use a noise-independent classifier, since we can use existing classifiers. One possible solution is by using tweedie to denoise the noisy samples in one step, before passing it on to the classifier.
 
 <!-- could show results here -->
 
 ### Problem Extensions
 
-We applied many baseline methods to inverse problems not covered in the original papers. 
+We applied baseline methods to inverse problems not covered in the original papers. 
 
 For super-resolution, our goal is to find HH^T to use the pseudoinverse guided method. 
 
@@ -161,16 +154,11 @@ HH^T can be found be be ... which is a diagonal matrix. This means the distribut
 
 Similar analysis can be applied to inpainting, where HHT is an identity matrix, and colorisation, which can be seen as super-resolution with can extra upscaling step.
 
-TODO:
-Quick slide on face merging?
-
-Yes!
-
 ---
 
-Deblurring is a bit different. In deblurring, each element in the original image $x$ can influence multiple elements in the blurred image $Hx$. As a result, $HH^T$ cannot be orthogonally transformed to a diagonal matrix, which means that $p_i(y|x_i)$ can't be approximated as an i.i.d gaussian.
+Deblurring is distinct. In deblurring, each element in the original image $x$ can influence multiple elements in the blurred image $Hx$. As a result, $HH^T$ cannot be orthogonally transformed to a diagonal matrix, which means that $p_i(y|x_i)$ can't be approximated as an i.i.d gaussian.
 
-However, we can try to find the moore penrose pseudoinverse, which can be found using the single value decomposition of H. 
+However, we can use the single value decomposition of H to find the Moore Penrose Pseudoinverse.
 
 To find SVD of H, we consider a 9 by 9 uniform blurring kernel, we can separate the blurring matrix H into A_r and A_c, which apply 1D bluring kernels on the rows and columns. 
 
@@ -178,7 +166,7 @@ To find SVD of H, we consider a 9 by 9 uniform blurring kernel, we can separate 
 
 Given that we can easily find the SVDs of A_r and A_c, we can write H in this way, which is the SVD of H after a sorting permuation.
 
-Recall that moore penrose pseudoinverse are approximations of the actual inverse, and in many deblurring situations, applying the pesudoinverse directly on the observation yields very good results.
+Recall that pseudoinverses are approximations of the actual inverse, and in numerous deblurring situations, applying the pesudoinverse directly on the observation yields satisfactory results. A good example would be JPEG decompression.
 
 
 ## Method -- Data/ training/ testing (1min)
@@ -228,7 +216,7 @@ In general, we find that no single method outperformed others in all tasks. Our 
 
 We also briefly consider the results of the class-conditional generation for genders, which for simplicity of this investigation we pose as a binary classification problem. 
 
-Both methods are clearly imperfect. The Tweedie-conditional generator seems to have less of an influence, keeping in line more with the unconditional model. Both methods successfully guide the model towards the correct class. There exists a limitation in both our method and the algorithm for noise-conditional classification: ie. we trained the two classifiers with different underlying architectures and weight balancing techniques. This could be improved on our part, but also reflects a key advantage of Tweedie classifier: it is far more easy to adapt/use existing work, such as the Mobilenet we used for the classifer, skipping the step of making it noise conditional.
+Both methods are clearly imperfect. The Tweedie-conditional generator seems to have less of an influence, keeping in line more with the unconditional model. Both methods successfully guide the model towards the correct class. There exists a limitation in both our method and the algorithm for noise-conditional classification: ie. we trained the two classifiers with different underlying architectures and weight balancing techniques. This could be improved on our part, but also reflects a key advantage of Tweedie classifier: it is far more easy to adapt/use existing work, such as the Mobilenet we used for the classifer, since it skips the step of making it noise conditional.
 
 <!-- skip  -->
 
@@ -247,4 +235,4 @@ A major limitation of our work is on computational resources, which limit the co
 3. Testing out how incorrect assumptions for $H$ degrade results (this was briefly explored for the task of pseudoinverse deblurring.)
 Another limitation is that we consider perfect measurements without noise, and assume we have perfect knowledge of the measurement process, such as knowing the size of kernels.
 
-On future work, it would be beneficial to observe how diffusion models extend to other domains with potentially new failure modes. We see potential and work needed in improving pipelines utilising neural networks. Finally, we are impressed by the performance of the MCG pipeline and similar gradient update steps deserve further exploration. 
+In future work, it would be beneficial to observe how diffusion models extend to other domains with potentially new failure modes. We see potential and work needed in improving pipelines utilising neural network for conditioning. Finally, we are impressed by the performance of the MCG pipeline and similar gradient update steps deserve further exploration. 
