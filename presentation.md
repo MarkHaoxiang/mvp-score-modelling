@@ -112,19 +112,19 @@ The authors analyse the topological space of diffusion with a local linear assum
 
 ## Method -- Improvements (4mins)
 
-When it comes to improvements, we came up with a simple heuristic to estimate the gradient term ...
+We first came up with a simple heuristic to replace the gradient term ...
 
 It is easily tractable. Since p(xi|x) is a known gaussian, the result after passing through a linear function is still gaussian. 
 
 <!-- show distribution -->
 
-It is similar with the approximation of p(y|xi) in the pseudoinverse guided method. However, we didn't use tweedie for the mean. 
+It is similar with the approximation of p(y|xi) in the pseudoinverse guided method. However, we didn't use tweedie for the expectation. 
 
 The results are surprisingly good on an initial subset of tasks.
 
 <!-- show images of results -->
 
-We conjecture that the success of this heuristic could be due the similarity wrt. $\Pi$GDM on tasks where the score function doesn't significantly impact the measurement.
+We conjecture that the success of this heuristic could be due the similarity wrt. $\Pi$GDM on tasks where the score function doesn't significantly impact the expectation of the measurement.
 
 ### Class-conditional 
 
